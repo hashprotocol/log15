@@ -50,6 +50,27 @@ func TestLazy(t *testing.T) {
 	}
 }
 
+func TestLazyTrace(t *testing.T) {
+	t.Parallel()
+
+	x := 1
+	lazy := func() int {
+		return x
+	}
+
+	l, _, r := testLogger()
+	l.Trace("", "x", Lazy{lazy})
+	if r.Ctx[1] != 1 {
+		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.Ctx[1], 1)
+	}
+
+	x = 2
+	l.Trace("", "x", Lazy{lazy})
+	if r.Ctx[1] != 2 {
+		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.Ctx[1], 1)
+	}
+}
+
 func TestInvalidLazy(t *testing.T) {
 	t.Parallel()
 
@@ -113,6 +134,31 @@ func TestJson(t *testing.T) {
 	validate("x", float64(1)) // all numbers are floats in JSON land
 	validate("y", 3.2)
 	validate("lvl", "eror")
+}
+
+
+func TestJsonTrace(t *testing.T) {
+	t.Parallel()
+
+	l, buf := testFormatter(JsonFormat())
+	l.Trace("some message", "x", 1, "y", 3.2)
+
+	var v map[string]interface{}
+	decoder := json.NewDecoder(buf)
+	if err := decoder.Decode(&v); err != nil {
+		t.Fatalf("Error decoding JSON: %v", v)
+	}
+
+	validate := func(key string, expected interface{}) {
+		if v[key] != expected {
+			t.Fatalf("Got %v expected %v for %v", v[key], expected, key)
+		}
+	}
+
+	validate("msg", "some message")
+	validate("x", float64(1)) // all numbers are floats in JSON land
+	validate("y", 3.2)
+	validate("lvl", "trce")
 }
 
 func TestJSONMap(t *testing.T) {
@@ -271,6 +317,29 @@ func TestLvlFilterHandler(t *testing.T) {
 	}
 }
 
+func TestLvlFilterHandlerTrace(t *testing.T) {
+	t.Parallel()
+
+	l := New()
+	h, r := testHandler()
+	l.SetHandler(LvlFilterHandler(LvlWarn, h))
+	l.Trace("trace'd")
+
+	if r.Msg != "" {
+		t.Fatalf("Expected zero record, but got record with msg: %v", r.Msg)
+	}
+
+	l.Info("info'd")
+	if r.Msg != "" {
+		t.Fatalf("Got record msg %s expected %s", r.Msg, "")
+	}
+
+	l.Warn("warn'd")
+	if r.Msg != "warn'd" {
+		t.Fatalf("Got record msg %s expected %s", r.Msg, "warn'd")
+	}
+}
+
 func TestNetHandler(t *testing.T) {
 	t.Parallel()
 
@@ -340,6 +409,28 @@ func TestMatchFilterHandler(t *testing.T) {
 	l.Crit("test3", "err", nil)
 	if r.Msg != "test3" {
 		t.Fatalf("expected filter handler to allow msg")
+	}
+}
+
+func TestMatchFilterHandlerTrace(t *testing.T) {
+t.Parallel()
+
+	l, h, r := testLogger()
+	l.SetHandler(MatchFilterHandler("err", nil, h))
+
+	l.Trace("test", "foo", "bar")
+	if r.Msg != "" {
+	t.Fatalf("expected filter handler to discard msg")
+	}
+
+	l.Trace("test2", "err", "bad fd")
+	if r.Msg != "" {
+	t.Fatalf("expected filter handler to discard msg")
+	}
+
+	l.Trace("test3", "err", nil)
+	if r.Msg != "test3" {
+	t.Fatalf("expected filter handler to allow msg")
 	}
 }
 
