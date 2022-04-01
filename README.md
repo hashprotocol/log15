@@ -26,7 +26,7 @@ you must vendor the library.
 ## Importing
 
 ```go
-import log "github.com/ChainSafe/log15"
+import log "github.com/hashprotocol/log15"
 ```
 
 ## Examples

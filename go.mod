@@ -1,4 +1,4 @@
-module github.com/ChainSafe/log15
+module github.com/hashprotocol/log15
 
 require (
 	github.com/go-stack/stack v1.8.0

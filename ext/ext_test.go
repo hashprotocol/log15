@@ -2,9 +2,10 @@ package ext
 
 import (
 	"errors"
-	log "github.com/ChainSafe/log15"
 	"math"
 	"testing"
+
+	log "github.com/hashprotocol/log15"
 )
 
 func testHandler() (log.Handler, *log.Record) {
